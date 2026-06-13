@@ -6,7 +6,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/brunoferrero/go-saas/internal/config"
+	"github.com/brunoferrero/go-saas/internal/container"
 	"github.com/brunoferrero/go-saas/internal/infrastructure/database"
+	"github.com/brunoferrero/go-saas/internal/routes"
 )
 
 func main() {
@@ -25,15 +27,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_ = db
+	sqlDB, err := db.DB()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := sqlDB.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
 	app := fiber.New()
 
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status": "ok",
-		})
-	})
+	c := container.Build(db)
+
+	routes.Register(
+		app,
+		c,
+	)
+
+	log.Println("Database connected")
 
 	log.Fatal(
 		app.Listen(":" + cfg.AppPort),
